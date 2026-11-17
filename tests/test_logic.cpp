@@ -15,6 +15,8 @@ void test_bateria_vacia() { TEST_ASSERT_EQUAL(0, batteryPercent(3.30)); }
 void test_bateria_media() { TEST_ASSERT_EQUAL(40, batteryPercent(3.75)); }
 void test_bateria_interpolada() { TEST_ASSERT_EQUAL(45, batteryPercent(3.775)); }
 void test_bateria_sin_divisor() { TEST_ASSERT_EQUAL(-1, batteryPercent(1.0)); }
+// Pin al aire que deriva hacia arriba: una LiPo nunca pasa de ~4,25 V.
+void test_bateria_flotante_alta() { TEST_ASSERT_EQUAL(-1, batteryPercent(4.6)); }
 
 void test_boton_pulsacion_estable() {      // pulsado 30 ms seguidos → 1 evento
   Debouncer d(30);
@@ -56,6 +58,7 @@ int main() {
   RUN_TEST(test_bateria_media);
   RUN_TEST(test_bateria_interpolada);
   RUN_TEST(test_bateria_sin_divisor);
+  RUN_TEST(test_bateria_flotante_alta);
   RUN_TEST(test_boton_pulsacion_estable);
   RUN_TEST(test_boton_rebote_no_cuenta);
   RUN_TEST(test_boton_mantenido_un_evento);

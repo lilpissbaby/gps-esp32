@@ -26,19 +26,22 @@ Alimenta solo por el USB del ordenador. La batería, el TP4056 y el MT3608 se qu
 | Botón zoom − | una pata a GND | D26 |
 | Botón OK | una pata a GND | D27 |
 | Botón atrás | una pata a GND | D33 |
-| Batería (opcional) | punto medio de 2 resistencias iguales | D35 |
+| Resistencia de abajo (siempre) | entre D35 y GND | D35 |
+| Resistencia de arriba (solo con batería) | entre D35 y el + de la batería | D35 |
 
 Los pulsadores de 12 × 12 tienen 4 patas unidas de dos en dos. Usa dos patas en **diagonal** y acertarás seguro.
 
+Pon **siempre la resistencia de abajo** (D35 a GND), aunque no midas la batería: así el pin no queda al aire y da lecturas falsas. Como en esta prueba la batería va fuera, lo correcto es que salga «sin medir».
+
 ## 3. Prepara la microSD (opcional)
 
-Formatéala en **FAT32** (32 GB o menos) y copia `prueba.jpg` en la raíz.
+Formatéala en **FAT32** (32 GB o menos) y copia en la raíz el archivo `sd/prueba.jpg` que viene en esta carpeta. No uses otra foto: muchas son JPEG progresivos y el ESP32 no los dibuja.
 
 ## 4. Carga el programa
 
 1. Abre `gps_prueba/gps_prueba.ino`. Los demás archivos de la carpeta se abren solos en pestañas.
 2. Placa: **ESP32 Dev Module**. Puerto: el COM que aparece al enchufar el ESP32.
-3. Pulsa **Subir**. Si se queda en «Connecting…», mantén pulsado el botón **BOOT** de la placa hasta que empiece a cargar.
+3. Pulsa **Subir**. Si se queda en «Connecting…», mantén pulsado el botón **BOOT** de la placa hasta que empiece a cargar. Si falla con «Wrong boot mode (0x13)», desconecta el cable DC (D2) mientras subes y vuelve a ponerlo después. Que el LED azul de la placa parpadee es normal: comparte pin con DC.
 4. Abre el Monitor Serie a 115200.
 
 ## 5. Qué tienes que ver
@@ -46,16 +49,22 @@ Formatéala en **FAT32** (32 GB o menos) y copia `prueba.jpg` en la raíz.
 | Paso | Bien | Si no |
 | --- | --- | --- |
 | Barras de color (3 s) | ROJO, VERDE, AZUL, BLANCO y NEGRO de arriba abajo, con «^ ARRIBA» arriba | En `lgfx_config.h`: si sale en negativo, cambia `PANTALLA_INVERTIR`; si rojo y azul van cambiados, cambia `PANTALLA_BGR`; si sale boca abajo, pon `PANTALLA_ROTACION` a 2 |
+| Pantalla en blanco o con rayas | — | Revisa los cables de la pantalla. Si siguen bien, en `lgfx_config.h` baja `cfg.freq_write` de 40000000 a 20000000: en protoboard los cables largos a veces no aguantan tanta velocidad |
 | SD | «OK» | «No detectada»: revisa los cables y que sea FAT32. El resto de pruebas sigue igual |
-| JPG (si copiaste `prueba.jpg`) | Ves la imagen 3 s y luego «dibujado» | «no se pudo dibujar»: vuelve a generar la imagen |
-| GPS dentro de casa | Los caracteres («car.») suben | Si a los 5 s sale «Sin datos: revisa TX/RX», cruza TX y RX |
+| JPG (si copiaste `prueba.jpg`) | Ves la imagen 3 s y luego «dibujado» | «no se pudo dibujar»: vuelve a copiar `sd/prueba.jpg` |
+| GPS dentro de casa | Los caracteres («car.») suben | Si a los 5 s sale «Sin datos: revisa TX/RX»: comprueba que el LED del GPS está encendido (VCC y GND) y, si lo está, cruza TX y RX |
 | GPS junto a una ventana o fuera | Suben los satélites y sale «Posicion OK» con lat y lon | La primera vez puede tardar varios minutos a cielo abierto |
 | Botones | Cada pulsación suma 1, aunque lo mantengas | Si no suma, prueba otras dos patas del pulsador |
-| Batería | Con el divisor: voltios y %. Sin él: «sin medir» | — |
+| Batería | Sin batería (esta prueba): «sin medir». Con batería y las dos resistencias: voltios y % | Si sin batería marca voltios, falta la resistencia de abajo |
 
-## Para desarrolladores: tests de la lógica
+## Para desarrolladores
+
+Tests en el PC (lógica, sketch completo con imitaciones de las librerías, e imagen de la SD):
 
 ```bash
 git clone --depth 1 https://github.com/ThrowTheSwitch/Unity.git ../vendor/Unity   # una vez
+pip install "pillow>=10.1"                                                       # una vez
 make -C tests
 ```
+
+Para volver a generar la imagen de prueba: `python tools/make_test_jpg.py sd`.

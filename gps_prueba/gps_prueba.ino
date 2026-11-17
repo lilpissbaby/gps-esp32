@@ -31,6 +31,8 @@ Button buttons[] = {
 };
 const char* lastButton = "ninguno";
 
+uint32_t gpsStartMs = 0;  // cuándo empezamos a escuchar al GPS
+
 enum class SdState { NotFound, WriteError, Ok };
 SdState sdState = SdState::NotFound;
 const char* jpgState = "sin tarjeta";
@@ -44,14 +46,14 @@ void drawLabel(const char* text, int y) {
   lcd.drawString(text, 4, y);
 }
 
-void drawValue(const char* text, int y, uint32_t color) {
+void drawValue(const char* text, int y, uint16_t color) {  // uint16_t = RGB565 en LovyanGFX
   lcd.fillRect(VALUE_X, y, 240 - VALUE_X, 18, TFT_BLACK);
   lcd.setTextColor(color, TFT_BLACK);
   lcd.drawString(text, VALUE_X, y);
 }
 
 void showColorBars() {
-  struct Bar { const char* name; uint32_t color; uint32_t text; };
+  struct Bar { const char* name; uint16_t color; uint16_t text; };  // uint32_t seria RGB888
   const Bar bars[] = {
       {"ROJO", TFT_RED, TFT_WHITE},     {"VERDE", TFT_GREEN, TFT_BLACK},
       {"AZUL", TFT_BLUE, TFT_WHITE},    {"BLANCO", TFT_WHITE, TFT_BLACK},
@@ -139,7 +141,7 @@ void drawSdValues() {
 
 void drawGps(uint32_t now) {
   char buf[40];
-  switch (gpsState(gps.charsProcessed(), gps.location.isValid(), now)) {
+  switch (gpsState(gps.charsProcessed(), gps.location.isValid(), now - gpsStartMs)) {
     case GpsState::Waiting: drawValue("Esperando datos...", 108, TFT_YELLOW); break;
     case GpsState::NoData:  drawValue("Sin datos: revisa TX/RX", 108, TFT_RED); break;
     case GpsState::NoFix:   drawValue("Sin posicion todavia", 108, TFT_YELLOW); break;
@@ -170,7 +172,9 @@ void drawButtons() {
 
 void drawBattery() {
   char buf[40];
-  float volts = batteryVolts(analogReadMilliVolts(PIN_BATTERY), BATTERY_DIVIDER_RATIO);
+  uint32_t mv = 0;
+  for (int i = 0; i < 16; i++) mv += analogReadMilliVolts(PIN_BATTERY);  // media de 16 lecturas
+  float volts = batteryVolts(mv / 16, BATTERY_DIVIDER_RATIO);
   int percent = batteryPercent(volts);
   if (percent < 0) {
     drawValue("sin medir", 244, TFT_DARKGREY);
@@ -205,6 +209,7 @@ void setup() {
 
   testSd();
   Serial2.begin(GPS_BAUD, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
+  gpsStartMs = millis();
 
   drawLayout();
   drawSdValues();

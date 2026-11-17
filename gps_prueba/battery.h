@@ -5,6 +5,6 @@
 // (2.0 con dos resistencias iguales).
 float batteryVolts(uint32_t pinMillivolts, float dividerRatio);
 
-// Porcentaje aproximado de una LiPo (0-100). Devuelve -1 si el voltaje es tan bajo
-// que no puede ser una batería conectada (divisor sin montar): "sin medir".
+// Porcentaje aproximado de una LiPo (0-100). Devuelve -1 ("sin medir") si el voltaje
+// no puede ser de una LiPo: muy bajo (divisor sin montar) o por encima de 4,4 V (pin al aire).
 int batteryPercent(float volts);

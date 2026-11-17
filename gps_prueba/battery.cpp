@@ -12,11 +12,12 @@ const Point kCurve[] = {
     {3.70f, 30},  {3.65f, 20}, {3.60f, 10}, {3.50f, 5},  {3.30f, 0},
 };
 const int kPoints = sizeof(kCurve) / sizeof(kCurve[0]);
-const float kNotConnected = 2.5f;
+const float kNotConnected = 2.5f;  // por debajo: divisor sin montar
+const float kImpossiblyHigh = 4.4f;  // por encima: pin al aire, una LiPo no llega
 }  // namespace
 
 int batteryPercent(float volts) {
-  if (volts < kNotConnected) return -1;
+  if (volts < kNotConnected || volts > kImpossiblyHigh) return -1;
   if (volts >= kCurve[0].volts) return 100;
   if (volts <= kCurve[kPoints - 1].volts) return 0;
   for (int i = 1; i < kPoints; i++) {
