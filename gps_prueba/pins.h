@@ -1,0 +1,32 @@
+#pragma once
+#include <stdint.h>
+
+// Conexiones del GPS portátil (ver «Conexiones» en el documento del proyecto).
+
+// Bus SPI compartido por pantalla y lector SD
+constexpr int PIN_SPI_SCK  = 18;  // pantalla SCL · SD CLK
+constexpr int PIN_SPI_MOSI = 23;  // pantalla SDA · SD MOSI
+constexpr int PIN_SPI_MISO = 19;  // solo SD MISO
+
+// Pantalla ST7789V 240x320 (GMT020-02, 7 pines, sin pin BL)
+constexpr int PIN_TFT_CS  = 15;
+constexpr int PIN_TFT_DC  = 2;
+constexpr int PIN_TFT_RST = 4;
+
+// Lector microSD
+constexpr int PIN_SD_CS = 5;
+
+// GPS NEO-6M (segundo puerto serie del ESP32)
+constexpr int PIN_GPS_RX = 16;  // aquí llega el TX del GPS
+constexpr int PIN_GPS_TX = 17;  // de aquí sale al RX del GPS
+constexpr uint32_t GPS_BAUD = 9600;
+
+// Botones, cada uno entre el pin y GND (pull-up interno)
+constexpr int PIN_BTN_ZOOM_IN  = 25;
+constexpr int PIN_BTN_ZOOM_OUT = 26;
+constexpr int PIN_BTN_OK       = 27;
+constexpr int PIN_BTN_BACK     = 33;
+
+// Medida de batería: punto medio del divisor de dos resistencias iguales
+constexpr int PIN_BATTERY = 35;
+constexpr float BATTERY_DIVIDER_RATIO = 2.0f;
