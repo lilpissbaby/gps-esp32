@@ -30,7 +30,7 @@
 
 ---
 
-### Tarea 1: lógica pura con tests
+### Task 1: lógica pura con tests
 
 **Archivos:**
 - Crear: `gps-prueba/platformio.ini` (solo el entorno `native` en esta tarea)
@@ -106,7 +106,7 @@ Esperado: 14 tests, 0 fallos.
 git add gps-prueba && git commit -m "feat(prueba): lógica de batería, botones y diagnóstico GPS con tests"
 ```
 
-### Tarea 2: firmware de prueba en el ESP32
+### Task 2: firmware de prueba en el ESP32
 
 **Archivos:**
 - Modificar: `gps-prueba/platformio.ini` (añadir entorno `esp32dev` con librerías y la configuración de TFT_eSPI por `build_flags`)
