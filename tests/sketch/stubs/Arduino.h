@@ -17,7 +17,9 @@ struct String {
   bool operator==(const char* o) const { return s == o; }
 };
 struct HardwareSerial {
-  void begin(unsigned long, uint32_t = 0, int8_t = -1, int8_t = -1) {}
+  unsigned long baud = 0;  // última velocidad pedida
+  void begin(unsigned long b, uint32_t = 0, int8_t = -1, int8_t = -1) { baud = b; }
+  void updateBaudRate(unsigned long b) { baud = b; }
   int available() { return 0; }
   int read() { return 0; }
   size_t println(const char*) { return 0; }

@@ -11,6 +11,7 @@
 #include "battery.h"
 #include "debouncer.h"
 #include "gpsdiag.h"
+#include "baudscan.h"
 #include "pins.h"
 
 LGFX lcd;
@@ -32,6 +33,7 @@ Button buttons[] = {
 const char* lastButton = "ninguno";
 
 uint32_t gpsStartMs = 0;  // cuándo empezamos a escuchar al GPS
+BaudScanner gpsBaud(GPS_BAUDS, sizeof(GPS_BAUDS) / sizeof(GPS_BAUDS[0]), 2500);
 
 enum class SdState { NotFound, WriteError, Ok };
 SdState sdState = SdState::NotFound;
@@ -93,6 +95,7 @@ void drawLayout() {
   drawLabel("Ultimo", 216);
   drawLabel("Bateria", 244);
   drawLabel("Tiempo", 272);
+  drawLabel("Baudios", 296);
 }
 
 // ---------- Pruebas ----------
@@ -145,7 +148,7 @@ void drawGps(uint32_t now) {
                    now - gpsStartMs)) {
     case GpsState::Waiting: drawValue("Esperando datos...", 108, TFT_YELLOW); break;
     case GpsState::NoData:  drawValue("Sin datos: revisa TX/RX", 108, TFT_RED); break;
-    case GpsState::BadData: drawValue("Datos raros: baudios?", 108, TFT_ORANGE); break;
+    case GpsState::BadData: drawValue("Datos con errores", 108, TFT_ORANGE); break;
     case GpsState::NoFix:   drawValue("Sin posicion todavia", 108, TFT_YELLOW); break;
     case GpsState::Fix:     drawValue("Posicion OK", 108, TFT_GREEN); break;
   }
@@ -161,6 +164,13 @@ void drawGps(uint32_t now) {
   } else {
     drawValue("-", 148, TFT_DARKGREY);
     drawValue("-", 168, TFT_DARKGREY);
+  }
+  if (gpsBaud.locked()) {
+    snprintf(buf, sizeof(buf), "%lu detectada", (unsigned long)gpsBaud.baud());
+    drawValue(buf, 296, TFT_GREEN);
+  } else {
+    snprintf(buf, sizeof(buf), "probando %lu", (unsigned long)gpsBaud.baud());
+    drawValue(buf, 296, TFT_YELLOW);
   }
 }
 
@@ -212,8 +222,9 @@ void setup() {
   delay(3000);
 
   testSd();
-  Serial2.begin(GPS_BAUD, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
+  Serial2.begin(gpsBaud.baud(), SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
   gpsStartMs = millis();
+  gpsBaud.start(gpsStartMs, gps.passedChecksum());
 
   drawLayout();
   drawSdValues();
@@ -226,6 +237,10 @@ void loop() {
   while (Serial2.available()) gps.encode(Serial2.read());
 
   uint32_t now = millis();
+  if (gpsBaud.update(now, gps.passedChecksum())) {
+    Serial2.updateBaudRate(gpsBaud.baud());
+    Serial.printf("GPS: sin frases validas, pruebo %lu baudios\n", (unsigned long)gpsBaud.baud());
+  }
   for (auto& b : buttons) {
     if (b.debouncer.update(digitalRead(b.pin) == LOW, now)) {
       b.count++;

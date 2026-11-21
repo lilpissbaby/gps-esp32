@@ -4,6 +4,7 @@
 #include "battery.h"
 #include "debouncer.h"
 #include "gpsdiag.h"
+#include "baudscan.h"
 
 void setUp() {}
 void tearDown() {}
@@ -49,10 +50,50 @@ void test_gps_esperando() { TEST_ASSERT_EQUAL(GpsState::Waiting, gpsState(0, 0, 
 void test_gps_sin_datos_tras_5s() { TEST_ASSERT_EQUAL(GpsState::NoData, gpsState(0, 0, false, 5000)); }
 // Un cable suelto o tocado mete algún carácter de ruido: eso no son datos del GPS.
 void test_gps_ruido_no_cuenta_como_datos() { TEST_ASSERT_EQUAL(GpsState::NoData, gpsState(2, 0, false, 183000)); }
-// Muchos caracteres pero ninguna frase válida: el GPS habla a otra velocidad (baudios).
+// Muchos caracteres pero ninguna frase válida: mal contacto u otra velocidad (baudios).
 void test_gps_basura_es_velocidad() { TEST_ASSERT_EQUAL(GpsState::BadData, gpsState(5000, 0, false, 10000)); }
 void test_gps_sin_fix() { TEST_ASSERT_EQUAL(GpsState::NoFix, gpsState(1200, 30, false, 60000)); }
 void test_gps_fix() { TEST_ASSERT_EQUAL(GpsState::Fix, gpsState(1200, 30, true, 60000)); }
+
+// BaudScanner: prueba velocidades hasta que llega una frase NMEA válida.
+static const uint32_t kBauds[] = {9600, 38400, 19200};
+void test_baud_empieza_por_la_primera() {
+  BaudScanner b(kBauds, 3, 2500);
+  b.start(1000);
+  TEST_ASSERT_EQUAL_UINT32(9600, b.baud());
+  TEST_ASSERT_FALSE(b.locked());
+}
+void test_baud_cambia_si_no_llegan_frases() {
+  BaudScanner b(kBauds, 3, 2500);
+  b.start(1000);
+  TEST_ASSERT_FALSE(b.update(3400, 0));   // aún no han pasado 2,5 s
+  TEST_ASSERT_TRUE(b.update(3500, 0));    // toca cambiar
+  TEST_ASSERT_EQUAL_UINT32(38400, b.baud());
+}
+void test_baud_vuelve_a_empezar_tras_la_ultima() {
+  BaudScanner b(kBauds, 3, 2500);
+  b.start(0);
+  b.update(2500, 0);
+  b.update(5000, 0);
+  TEST_ASSERT_TRUE(b.update(7500, 0));
+  TEST_ASSERT_EQUAL_UINT32(9600, b.baud());
+}
+void test_baud_se_queda_con_la_buena() {
+  BaudScanner b(kBauds, 3, 2500);
+  b.start(0);
+  b.update(2500, 0);                      // pasa a 38400
+  TEST_ASSERT_FALSE(b.update(3000, 4));   // llegan frases válidas
+  TEST_ASSERT_TRUE(b.locked());
+  TEST_ASSERT_FALSE(b.update(60000, 4));  // y ya no se mueve
+  TEST_ASSERT_EQUAL_UINT32(38400, b.baud());
+}
+// Las frases contadas antes de empezar (a otra velocidad) no cuentan como acierto.
+void test_baud_no_cuenta_frases_de_antes() {
+  BaudScanner c(kBauds, 3, 2500);
+  c.start(0, 7);  // ya había 7 frases contadas antes de empezar
+  TEST_ASSERT_FALSE(c.update(1000, 7));
+  TEST_ASSERT_FALSE(c.locked());
+}
 
 int main() {
   UNITY_BEGIN();
@@ -73,5 +114,10 @@ int main() {
   RUN_TEST(test_gps_basura_es_velocidad);
   RUN_TEST(test_gps_sin_fix);
   RUN_TEST(test_gps_fix);
+  RUN_TEST(test_baud_empieza_por_la_primera);
+  RUN_TEST(test_baud_cambia_si_no_llegan_frases);
+  RUN_TEST(test_baud_vuelve_a_empezar_tras_la_ultima);
+  RUN_TEST(test_baud_se_queda_con_la_buena);
+  RUN_TEST(test_baud_no_cuenta_frases_de_antes);
   return UNITY_END();
 }

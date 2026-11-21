@@ -6,7 +6,8 @@
 // ruido sueltos, y eso no es el GPS hablando.
 //  Waiting: aún no ha llegado ninguna frase, pero llevamos menos de 5 s.
 //  NoData:  5 s o más sin frases y casi sin caracteres -> alimentación o TX/RX.
-//  BadData: llegan muchos caracteres pero ninguna frase válida -> otra velocidad (baudios).
+//  BadData: llegan muchos caracteres pero ninguna frase válida -> mal contacto (pines del GPS
+//           sin soldar, GND) u otra velocidad (el programa prueba velocidades solo).
 //  NoFix:   llegan frases pero aún no hay posición.
 //  Fix:     hay posición válida.
 enum class GpsState { Waiting, NoData, BadData, NoFix, Fix };

@@ -7,7 +7,7 @@ UNITY ?= ../../vendor/Unity/src
 SKETCH = ../gps_prueba
 STUBS = sketch/stubs
 CXXFLAGS = -std=gnu++17 -Wall -Wextra -Werror -I$(UNITY) -I$(SKETCH) -DUNITY_INCLUDE_DOUBLE
-LOGIC = $(SKETCH)/battery.cpp $(SKETCH)/debouncer.cpp $(SKETCH)/gpsdiag.cpp
+LOGIC = $(SKETCH)/battery.cpp $(SKETCH)/debouncer.cpp $(SKETCH)/gpsdiag.cpp $(SKETCH)/baudscan.cpp
 
 test: build/test_logic build/test_sketch
 	./build/test_logic

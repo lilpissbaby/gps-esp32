@@ -19,7 +19,8 @@ constexpr int PIN_SD_CS = 5;
 // GPS NEO-6M (segundo puerto serie del ESP32)
 constexpr int PIN_GPS_RX = 16;  // aquí llega el TX del GPS
 constexpr int PIN_GPS_TX = 17;  // de aquí sale al RX del GPS
-constexpr uint32_t GPS_BAUD = 9600;
+// Velocidades que se prueban en este orden hasta que el GPS responde (el NEO-6M viene a 9600).
+constexpr uint32_t GPS_BAUDS[] = {9600, 38400, 19200, 57600, 115200, 4800, 230400};
 
 // Botones, cada uno entre el pin y GND (pull-up interno)
 constexpr int PIN_BTN_ZOOM_IN  = 25;

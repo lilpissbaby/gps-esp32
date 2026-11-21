@@ -58,10 +58,42 @@ void test_ruido_en_el_cable_no_engana() {
   TEST_ASSERT_FALSE(drew("Sin posicion todavia"));
 }
 
+// Llega mucha basura y ninguna frase: a los 2,5 s prueba otra velocidad y lo dice en pantalla.
+void test_prueba_otra_velocidad_si_llega_basura() {
+  g_gpsChars = 5000;
+  g_gpsSentences = 0;
+  g_millis += 2600;
+  unsigned long before = Serial2.baud;
+  g_drawn.clear();
+  loop();
+  TEST_ASSERT_NOT_EQUAL(before, Serial2.baud);
+  char expected[32];
+  snprintf(expected, sizeof(expected), "probando %lu", Serial2.baud);
+  TEST_ASSERT_TRUE(drew(expected));
+  TEST_ASSERT_TRUE(drew("Datos con errores"));
+}
+
+// En cuanto llegan frases válidas se queda con esa velocidad.
+void test_se_queda_con_la_velocidad_que_funciona() {
+  g_gpsSentences = 12;
+  g_millis += 2600;
+  unsigned long found = Serial2.baud;
+  g_drawn.clear();
+  loop();
+  g_millis += 10000;
+  loop();
+  TEST_ASSERT_EQUAL(found, Serial2.baud);
+  char expected[32];
+  snprintf(expected, sizeof(expected), "%lu detectada", found);
+  TEST_ASSERT_TRUE(drew(expected));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_arranque_con_jpg_no_avisa_de_tx_rx);
   RUN_TEST(test_gps_mudo_avisa_a_los_5_s);
   RUN_TEST(test_ruido_en_el_cable_no_engana);
+  RUN_TEST(test_prueba_otra_velocidad_si_llega_basura);
+  RUN_TEST(test_se_queda_con_la_velocidad_que_funciona);
   return UNITY_END();
 }
