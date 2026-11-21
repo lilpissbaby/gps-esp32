@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <deque>
 #define INPUT_PULLUP 0x05
 #define LOW 0
 #define HIGH 1
@@ -20,8 +21,12 @@ struct HardwareSerial {
   unsigned long baud = 0;  // última velocidad pedida
   void begin(unsigned long b, uint32_t = 0, int8_t = -1, int8_t = -1) { baud = b; }
   void updateBaudRate(unsigned long b) { baud = b; }
-  int available() { return 0; }
-  int read() { return 0; }
+  std::deque<uint8_t> rx;        // bytes que "manda" el GPS imitado
+  std::vector<uint8_t> written;  // bytes que el sketch le manda al GPS
+  int available() { return (int)rx.size(); }
+  int read() { int c = rx.front(); rx.pop_front(); return c; }
+  size_t write(const uint8_t* d, size_t n) { written.insert(written.end(), d, d + n); return n; }
+  void flush() {}
   size_t println(const char*) { return 0; }
   size_t printf(const char*, ...) { return 0; }
 };
@@ -30,5 +35,6 @@ extern uint32_t g_millis;  // reloj simulado: delay() lo avanza
 inline unsigned long millis() { return g_millis; }
 inline void delay(unsigned long ms) { g_millis += ms; }
 inline void pinMode(uint8_t, uint8_t) {}
-inline int digitalRead(uint8_t) { return HIGH; }  // ningún botón pulsado
+extern int g_pinLevel[40];  // HIGH = botón suelto, LOW = pulsado
+inline int digitalRead(uint8_t pin) { return g_pinLevel[pin]; }
 inline uint32_t analogReadMilliVolts(uint8_t) { return 0; }

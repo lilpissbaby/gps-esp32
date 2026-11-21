@@ -1,19 +1,19 @@
 #pragma once
 #include <stdint.h>
 
-// Estado del GPS para la pantalla de prueba. Solo cuentan como datos las frases NMEA
-// completas y con la suma de control bien: un cable suelto o tocado mete caracteres de
-// ruido sueltos, y eso no es el GPS hablando.
-//  Waiting: aún no ha llegado ninguna frase, pero llevamos menos de 5 s.
-//  NoData:  5 s o más sin frases y casi sin caracteres -> alimentación o TX/RX.
-//  BadData: llegan muchos caracteres pero ninguna frase válida -> mal contacto (pines del GPS
-//           sin soldar, GND) u otra velocidad (el programa prueba velocidades solo).
+// Estado del GPS para la pantalla de prueba. Solo cuentan como datos las frases NMEA (o
+// tramas UBX) completas y con la suma de control bien, y la "señal" se mide en caracteres
+// por segundo: un cable suelto o tocado mete algún carácter suelto, y eso no es el GPS.
+//  Waiting: aún no ha llegado nada válido, pero llevamos menos de 5 s.
+//  NoData:  no llega señal (casi 0 car/s) -> alimentación o TX/RX.
+//  BadData: llega señal (muchos car/s) pero nada válido -> mal contacto u otra velocidad.
+//  UbxOnly: llegan tramas UBX y ninguna frase NMEA -> GPS configurado solo en binario.
 //  NoFix:   llegan frases pero aún no hay posición.
 //  Fix:     hay posición válida.
-enum class GpsState { Waiting, NoData, BadData, NoFix, Fix };
+enum class GpsState { Waiting, NoData, BadData, UbxOnly, NoFix, Fix };
 
-// A partir de cuántos caracteres sin frases válidas lo consideramos basura y no ruido.
-constexpr uint32_t GPS_GARBAGE_CHARS = 200;
+// A partir de cuántos caracteres por segundo consideramos que hay señal y no ruido.
+constexpr uint32_t GPS_SIGNAL_CPS = 10;
 
-GpsState gpsState(uint32_t charsProcessed, uint32_t validSentences, bool locationValid,
-                  uint32_t msListening);
+GpsState gpsState(uint32_t charsPerSecond, uint32_t validSentences, uint32_t ubxFrames,
+                  bool locationValid, uint32_t msListening);

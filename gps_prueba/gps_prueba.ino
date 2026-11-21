@@ -12,6 +12,7 @@
 #include "debouncer.h"
 #include "gpsdiag.h"
 #include "baudscan.h"
+#include "ubx.h"
 #include "pins.h"
 
 LGFX lcd;
@@ -34,6 +35,26 @@ const char* lastButton = "ninguno";
 
 uint32_t gpsStartMs = 0;  // cuándo empezamos a escuchar al GPS
 BaudScanner gpsBaud(GPS_BAUDS, sizeof(GPS_BAUDS) / sizeof(GPS_BAUDS[0]), 2500);
+UbxDetector ubx;                // reconoce tramas binarias UBX en lo que manda el GPS
+uint32_t sentencesAtStart = 0;  // frases y tramas contadas antes de (re)empezar a escuchar
+uint32_t ubxAtStart = 0;
+uint32_t charsPerSecond = 0;    // señal que llega, para distinguirla del ruido de un cable
+
+uint32_t gpsSentences() { return gps.passedChecksum() - sentencesAtStart; }
+uint32_t gpsUbxFrames() { return ubx.validFrames() - ubxAtStart; }
+
+// Empieza (o vuelve a empezar) a escuchar al GPS desde la primera velocidad.
+void startGpsListening(uint32_t now) {
+  sentencesAtStart = gps.passedChecksum();
+  ubxAtStart = ubx.validFrames();
+  gpsStartMs = now;
+  gpsBaud.start(now, 0);
+}
+
+GpsState currentGpsState(uint32_t now) {
+  return gpsState(charsPerSecond, gpsSentences(), gpsUbxFrames(), gps.location.isValid(),
+                  now - gpsStartMs);
+}
 
 enum class SdState { NotFound, WriteError, Ok };
 SdState sdState = SdState::NotFound;
@@ -144,17 +165,25 @@ void drawSdValues() {
 
 void drawGps(uint32_t now) {
   char buf[40];
-  switch (gpsState(gps.charsProcessed(), gps.passedChecksum(), gps.location.isValid(),
-                   now - gpsStartMs)) {
+  const unsigned long sats = gps.satellites.isValid() ? gps.satellites.value() : 0;
+  switch (currentGpsState(now)) {
     case GpsState::Waiting: drawValue("Esperando datos...", 108, TFT_YELLOW); break;
     case GpsState::NoData:  drawValue("Sin datos: revisa TX/RX", 108, TFT_RED); break;
     case GpsState::BadData: drawValue("Datos con errores", 108, TFT_ORANGE); break;
-    case GpsState::NoFix:   drawValue("Sin posicion todavia", 108, TFT_YELLOW); break;
-    case GpsState::Fix:     drawValue("Posicion OK", 108, TFT_GREEN); break;
+    case GpsState::UbxOnly: drawValue("UBX: pulsa OK=fabrica", 108, TFT_ORANGE); break;
+    case GpsState::NoFix:
+      snprintf(buf, sizeof(buf), "Sin posicion, %lu sat.", sats);
+      drawValue(buf, 108, TFT_YELLOW);
+      break;
+    case GpsState::Fix:
+      snprintf(buf, sizeof(buf), "Posicion OK, %lu sat.", sats);
+      drawValue(buf, 108, TFT_GREEN);
+      break;
   }
   // Frases NMEA válidas: un GPS bien conectado manda varias por segundo, con o sin posición.
-  snprintf(buf, sizeof(buf), "%lu frases  %lu sat.", (unsigned long)gps.passedChecksum(),
-           (unsigned long)(gps.satellites.isValid() ? gps.satellites.value() : 0));
+  // car/s: con 0 o casi 0 no llega señal; con decenas o cientos, el GPS sí está hablando.
+  snprintf(buf, sizeof(buf), "%lu frases  %lu car/s", (unsigned long)gpsSentences(),
+           (unsigned long)charsPerSecond);
   drawValue(buf, 128, TFT_WHITE);
   if (gps.location.isValid()) {
     snprintf(buf, sizeof(buf), "%.6f", gps.location.lat());
@@ -207,6 +236,18 @@ void logToSerial(uint32_t now) {
                 (unsigned long)buttons[2].count, (unsigned long)buttons[3].count);
 }
 
+// El GPS habla solo en binario (UBX), normalmente porque estuvo en un dron. Esta orden borra
+// lo que tenga guardado y lo deja de fábrica: 9600 baudios y frases NMEA normales.
+void resetGpsToFactory(uint32_t now) {
+  uint8_t frame[32];
+  const size_t n = ubxFactoryReset(frame, sizeof(frame));
+  Serial2.write(frame, n);
+  Serial2.flush();  // que salga entera antes de cambiar de velocidad
+  Serial.printf("GPS: enviada orden de fabrica a %lu baudios\n", (unsigned long)gpsBaud.baud());
+  startGpsListening(now);
+  Serial2.updateBaudRate(gpsBaud.baud());
+}
+
 // ---------- Arduino ----------
 
 void setup() {
@@ -222,9 +263,8 @@ void setup() {
   delay(3000);
 
   testSd();
+  startGpsListening(millis());
   Serial2.begin(gpsBaud.baud(), SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);
-  gpsStartMs = millis();
-  gpsBaud.start(gpsStartMs, gps.passedChecksum());
 
   drawLayout();
   drawSdValues();
@@ -234,10 +274,21 @@ void loop() {
   static uint32_t lastDraw = 0;
   static uint32_t lastLog = 0;
 
-  while (Serial2.available()) gps.encode(Serial2.read());
+  static uint32_t cpsLastMs = 0, cpsLastChars = 0;
+
+  while (Serial2.available()) {
+    const int c = Serial2.read();
+    gps.encode((char)c);
+    ubx.feed((uint8_t)c);
+  }
 
   uint32_t now = millis();
-  if (gpsBaud.update(now, gps.passedChecksum())) {
+  if (now - cpsLastMs >= 1000) {
+    charsPerSecond = (gps.charsProcessed() - cpsLastChars) * 1000UL / (now - cpsLastMs);
+    cpsLastChars = gps.charsProcessed();
+    cpsLastMs = now;
+  }
+  if (gpsBaud.update(now, gpsSentences() + gpsUbxFrames())) {
     Serial2.updateBaudRate(gpsBaud.baud());
     Serial.printf("GPS: sin frases validas, pruebo %lu baudios\n", (unsigned long)gpsBaud.baud());
   }
@@ -246,6 +297,7 @@ void loop() {
       b.count++;
       lastButton = b.name;
       Serial.printf("Boton %s\n", b.name);
+      if (&b == &buttons[2] && currentGpsState(now) == GpsState::UbxOnly) resetGpsToFactory(now);
     }
   }
 
