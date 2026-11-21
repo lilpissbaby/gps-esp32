@@ -44,10 +44,15 @@ void test_boton_mantenido_un_evento() {    // mantenido 2 s → solo 1 evento; s
   TEST_ASSERT_TRUE(d.update(true, 2080));
 }
 
-void test_gps_esperando() { TEST_ASSERT_EQUAL(GpsState::Waiting, gpsState(0, false, 2000)); }
-void test_gps_sin_datos_tras_5s() { TEST_ASSERT_EQUAL(GpsState::NoData, gpsState(0, false, 5000)); }
-void test_gps_sin_fix() { TEST_ASSERT_EQUAL(GpsState::NoFix, gpsState(1200, false, 60000)); }
-void test_gps_fix() { TEST_ASSERT_EQUAL(GpsState::Fix, gpsState(1200, true, 60000)); }
+// gpsState(caracteres, frases NMEA válidas, hay posición, ms escuchando)
+void test_gps_esperando() { TEST_ASSERT_EQUAL(GpsState::Waiting, gpsState(0, 0, false, 2000)); }
+void test_gps_sin_datos_tras_5s() { TEST_ASSERT_EQUAL(GpsState::NoData, gpsState(0, 0, false, 5000)); }
+// Un cable suelto o tocado mete algún carácter de ruido: eso no son datos del GPS.
+void test_gps_ruido_no_cuenta_como_datos() { TEST_ASSERT_EQUAL(GpsState::NoData, gpsState(2, 0, false, 183000)); }
+// Muchos caracteres pero ninguna frase válida: el GPS habla a otra velocidad (baudios).
+void test_gps_basura_es_velocidad() { TEST_ASSERT_EQUAL(GpsState::BadData, gpsState(5000, 0, false, 10000)); }
+void test_gps_sin_fix() { TEST_ASSERT_EQUAL(GpsState::NoFix, gpsState(1200, 30, false, 60000)); }
+void test_gps_fix() { TEST_ASSERT_EQUAL(GpsState::Fix, gpsState(1200, 30, true, 60000)); }
 
 int main() {
   UNITY_BEGIN();
@@ -64,6 +69,8 @@ int main() {
   RUN_TEST(test_boton_mantenido_un_evento);
   RUN_TEST(test_gps_esperando);
   RUN_TEST(test_gps_sin_datos_tras_5s);
+  RUN_TEST(test_gps_ruido_no_cuenta_como_datos);
+  RUN_TEST(test_gps_basura_es_velocidad);
   RUN_TEST(test_gps_sin_fix);
   RUN_TEST(test_gps_fix);
   return UNITY_END();

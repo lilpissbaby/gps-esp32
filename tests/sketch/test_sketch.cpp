@@ -14,6 +14,7 @@ const IFont fonts::Font2, fonts::Font4;
 uint32_t g_millis = 0;
 bool g_sdPresent = true;
 bool g_sdHasJpg = true;
+uint32_t g_gpsChars = 0, g_gpsSentences = 0;
 std::vector<std::string> g_drawn;
 bool fs::FS::exists(const char*) { return g_sdHasJpg; }
 bool SDFS::begin(uint8_t, SPIClass&, uint32_t) { return g_sdPresent; }
@@ -45,9 +46,22 @@ void test_gps_mudo_avisa_a_los_5_s() {
   TEST_ASSERT_TRUE(drew("Sin datos: revisa TX/RX"));
 }
 
+// Lo que pasó en la protoboard: GPS sin datos y 2 caracteres de ruido al tocar los cables.
+// Debe seguir diciendo que no llegan datos, no "Sin posicion todavia".
+void test_ruido_en_el_cable_no_engana() {
+  g_millis += 180000;
+  g_gpsChars = 2;
+  g_gpsSentences = 0;
+  g_drawn.clear();
+  loop();
+  TEST_ASSERT_TRUE(drew("Sin datos: revisa TX/RX"));
+  TEST_ASSERT_FALSE(drew("Sin posicion todavia"));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_arranque_con_jpg_no_avisa_de_tx_rx);
   RUN_TEST(test_gps_mudo_avisa_a_los_5_s);
+  RUN_TEST(test_ruido_en_el_cable_no_engana);
   return UNITY_END();
 }

@@ -1,7 +1,9 @@
 #include "gpsdiag.h"
 
-GpsState gpsState(uint32_t charsProcessed, bool locationValid, uint32_t msSinceBoot) {
+GpsState gpsState(uint32_t charsProcessed, uint32_t validSentences, bool locationValid,
+                  uint32_t msListening) {
   if (locationValid) return GpsState::Fix;
-  if (charsProcessed > 0) return GpsState::NoFix;
-  return msSinceBoot >= 5000 ? GpsState::NoData : GpsState::Waiting;
+  if (validSentences > 0) return GpsState::NoFix;
+  if (msListening < 5000) return GpsState::Waiting;
+  return charsProcessed >= GPS_GARBAGE_CHARS ? GpsState::BadData : GpsState::NoData;
 }

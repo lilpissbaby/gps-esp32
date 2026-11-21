@@ -141,13 +141,16 @@ void drawSdValues() {
 
 void drawGps(uint32_t now) {
   char buf[40];
-  switch (gpsState(gps.charsProcessed(), gps.location.isValid(), now - gpsStartMs)) {
+  switch (gpsState(gps.charsProcessed(), gps.passedChecksum(), gps.location.isValid(),
+                   now - gpsStartMs)) {
     case GpsState::Waiting: drawValue("Esperando datos...", 108, TFT_YELLOW); break;
     case GpsState::NoData:  drawValue("Sin datos: revisa TX/RX", 108, TFT_RED); break;
+    case GpsState::BadData: drawValue("Datos raros: baudios?", 108, TFT_ORANGE); break;
     case GpsState::NoFix:   drawValue("Sin posicion todavia", 108, TFT_YELLOW); break;
     case GpsState::Fix:     drawValue("Posicion OK", 108, TFT_GREEN); break;
   }
-  snprintf(buf, sizeof(buf), "%lu car.  %lu sat.", (unsigned long)gps.charsProcessed(),
+  // Frases NMEA válidas: un GPS bien conectado manda varias por segundo, con o sin posición.
+  snprintf(buf, sizeof(buf), "%lu frases  %lu sat.", (unsigned long)gps.passedChecksum(),
            (unsigned long)(gps.satellites.isValid() ? gps.satellites.value() : 0));
   drawValue(buf, 128, TFT_WHITE);
   if (gps.location.isValid()) {
@@ -185,8 +188,9 @@ void drawBattery() {
 }
 
 void logToSerial(uint32_t now) {
-  Serial.printf("t=%lus GPS car=%lu sat=%lu fix=%d lat=%.6f lon=%.6f | botones +%lu -%lu OK%lu <-%lu\n",
+  Serial.printf("t=%lus GPS car=%lu frases=%lu malas=%lu sat=%lu fix=%d lat=%.6f lon=%.6f | botones +%lu -%lu OK%lu <-%lu\n",
                 (unsigned long)(now / 1000), (unsigned long)gps.charsProcessed(),
+                (unsigned long)gps.passedChecksum(), (unsigned long)gps.failedChecksum(),
                 (unsigned long)(gps.satellites.isValid() ? gps.satellites.value() : 0),
                 gps.location.isValid(), gps.location.lat(), gps.location.lng(),
                 (unsigned long)buttons[0].count, (unsigned long)buttons[1].count,

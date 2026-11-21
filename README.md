@@ -52,8 +52,8 @@ Formatéala en **FAT32** (32 GB o menos) y copia en la raíz el archivo `sd/prue
 | Pantalla en blanco o con rayas | — | Revisa los cables de la pantalla. Si siguen bien, en `lgfx_config.h` baja `cfg.freq_write` de 40000000 a 20000000: en protoboard los cables largos a veces no aguantan tanta velocidad |
 | SD | «OK» | «No detectada»: revisa los cables y que sea FAT32. El resto de pruebas sigue igual |
 | JPG (si copiaste `prueba.jpg`) | Ves la imagen 3 s y luego «dibujado» | «no se pudo dibujar»: vuelve a copiar `sd/prueba.jpg` |
-| GPS dentro de casa | Los caracteres («car.») suben | Si a los 5 s sale «Sin datos: revisa TX/RX»: comprueba que el LED del GPS está encendido (VCC y GND) y, si lo está, cruza TX y RX |
-| GPS junto a una ventana o fuera | Suben los satélites y sale «Posicion OK» con lat y lon | La primera vez puede tardar varios minutos a cielo abierto |
+| GPS dentro de casa | «Sin posicion todavia» y las frases suben varias por segundo, aunque no haya satélites | «Sin datos: revisa TX/RX»: el GPS no manda nada. 1) Mide con el polímetro entre VCC y GND del GPS: tiene que dar unos 3,3 V. 2) Comprueba que el TX del GPS va a D16 y su RX a D17; si dudas, intercambia esos dos cables (no se rompe nada). «Datos raros: baudios?»: el GPS habla a otra velocidad (pasará con el M10 hasta adaptar el programa) |
+| GPS junto a una ventana o fuera | Suben los satélites y sale «Posicion OK» con lat y lon. El LED del GPS empieza a parpadear una vez por segundo | La primera vez puede tardar bastantes minutos a cielo abierto. El LED del NEO-6M **no indica que tenga corriente**: solo parpadea cuando ya tiene posición, así que apagado es normal mientras busca |
 | Botones | Cada pulsación suma 1, aunque lo mantengas | Si no suma, prueba otras dos patas del pulsador |
 | Batería | Sin batería (esta prueba): «sin medir». Con batería y las dos resistencias: voltios y % | Si sin batería marca voltios, falta la resistencia de abajo |
 
