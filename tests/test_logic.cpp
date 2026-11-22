@@ -7,6 +7,7 @@
 #include "gpsdiag.h"
 #include "baudscan.h"
 #include "ubx.h"
+#include "pins.h"
 
 void setUp() {}
 void tearDown() {}
@@ -139,6 +140,25 @@ void test_baud_no_cuenta_frases_de_antes() {
   TEST_ASSERT_FALSE(c.locked());
 }
 
+// Los pines del GPS: distintos de todos los demás, el de salida capaz de sacar señal
+// (34-39 son solo entrada) y ninguno de arranque (0, 2, 5, 12, 15).
+void test_pines_del_gps_validos() {
+  const int others[] = {PIN_SPI_SCK, PIN_SPI_MOSI, PIN_SPI_MISO, PIN_TFT_CS, PIN_TFT_DC,
+                        PIN_TFT_RST, PIN_SD_CS, PIN_BTN_ZOOM_IN, PIN_BTN_ZOOM_OUT,
+                        PIN_BTN_OK, PIN_BTN_BACK, PIN_BATTERY};
+  const int strapping[] = {0, 2, 5, 12, 15};
+  TEST_ASSERT_NOT_EQUAL(PIN_GPS_RX, PIN_GPS_TX);
+  for (int o : others) {
+    TEST_ASSERT_NOT_EQUAL(o, PIN_GPS_RX);
+    TEST_ASSERT_NOT_EQUAL(o, PIN_GPS_TX);
+  }
+  for (int st : strapping) {
+    TEST_ASSERT_NOT_EQUAL(st, PIN_GPS_RX);
+    TEST_ASSERT_NOT_EQUAL(st, PIN_GPS_TX);
+  }
+  TEST_ASSERT_TRUE(PIN_GPS_TX < 34);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_bateria_voltios);
@@ -164,6 +184,7 @@ int main() {
   RUN_TEST(test_ubx_encuentra_la_trama_entre_basura);
   RUN_TEST(test_ubx_nmea_no_cuenta);
   RUN_TEST(test_ubx_orden_de_fabrica);
+  RUN_TEST(test_pines_del_gps_validos);
   RUN_TEST(test_baud_empieza_por_la_primera);
   RUN_TEST(test_baud_cambia_si_no_llegan_frases);
   RUN_TEST(test_baud_vuelve_a_empezar_tras_la_ultima);

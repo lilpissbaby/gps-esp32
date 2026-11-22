@@ -21,7 +21,7 @@ Alimenta solo por el USB del ordenador. La batería, el TP4056 y el MT3608 se qu
 | Lector SD | CLK · MOSI | D18 · D23 (los mismos que la pantalla) |
 | Lector SD | MISO · CS | D19 · D5 |
 | GPS | VCC · GND | 3V3 · GND |
-| GPS | TX · RX | D16 · D17 |
+| GPS | TX · RX | D32 · D13 |
 | Botón zoom + | una pata a GND | D25 |
 | Botón zoom − | una pata a GND | D26 |
 | Botón OK | una pata a GND | D27 |
@@ -52,7 +52,7 @@ Formatéala en **FAT32** (32 GB o menos) y copia en la raíz el archivo `sd/prue
 | Pantalla en blanco o con rayas | — | Revisa los cables de la pantalla. Si siguen bien, en `lgfx_config.h` baja `cfg.freq_write` de 40000000 a 20000000: en protoboard los cables largos a veces no aguantan tanta velocidad |
 | SD | «OK» | «No detectada»: revisa los cables y que sea FAT32. El resto de pruebas sigue igual |
 | JPG (si copiaste `prueba.jpg`) | Ves la imagen 3 s y luego «dibujado» | «no se pudo dibujar»: vuelve a copiar `sd/prueba.jpg` |
-| GPS dentro de casa | «Sin posicion, 0 sat.» y en «Datos» las frases subiendo, con unos 400–500 car/s. El LED del GPS sigue apagado: es normal | Mira primero los **car/s** de la fila «Datos». **0 car/s** y «Sin datos: revisa TX/RX»: al ESP32 no le llega señal. Mide con el polímetro unos 3,3 V entre VCC y GND del GPS y comprueba que el TX del GPS va a D16 y su RX a D17 (si dudas, intercambia esos dos cables). **Decenas o cientos de car/s** y «Datos con errores»: llega señal pero rota; revisa las soldaduras de los 4 pines del GPS y que su GND vaya al GND del ESP32 |
+| GPS dentro de casa | «Sin posicion, 0 sat.» y en «Datos» las frases subiendo, con unos 400–500 car/s. El LED del GPS sigue apagado: es normal | Mira primero los **car/s** de la fila «Datos». **0 car/s** y «Sin datos: revisa TX/RX»: al ESP32 no le llega señal. Mide con el polímetro unos 3,3 V entre VCC y GND del GPS y comprueba que el TX del GPS va a D32 y su RX a D13 (si dudas, intercambia esos dos cables). **Decenas o cientos de car/s** y «Datos con errores»: llega señal pero rota; revisa las soldaduras de los 4 pines del GPS y que su GND vaya al GND del ESP32 |
 | GPS en binario | — | «UBX: pulsa OK=fabrica»: el GPS habla solo en binario (UBX), lo normal si estuvo en un dron, porque las controladoras lo dejan así. **Pulsa OK una vez**: el programa le manda la orden de volver a fábrica (9600 baudios, frases normales) y vuelve a escuchar. Borra la configuración que tuviera guardada; si lo vuelves a poner en el dron, la controladora lo configura sola |
 | Baudios | Al principio pone «probando 9600» y, en cuanto llegan frases, «9600 detectada» (u otra velocidad) | El programa prueba solo 9600, 38400, 19200, 57600, 115200, 4800 y 230400, 2,5 s cada una. Si da vueltas sin detectar ninguna, no es la velocidad: revisa la fila «GPS dentro de casa». La velocidad del Monitor Serie (115200) no tiene nada que ver |
 | GPS junto a una ventana o fuera | Suben los satélites y sale «Posicion OK, N sat.» con lat y lon. El LED del GPS empieza a parpadear una vez por segundo | La primera vez puede tardar bastantes minutos a cielo abierto. El LED del NEO-6M **no indica que tenga corriente**: solo parpadea cuando ya tiene posición |
